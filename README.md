@@ -29,4 +29,4 @@ dc_sm = readers.lis_cube(...)
 vis.map_imshow(root_zone(dc_sm).mean(dim = "time"))
 ```
 
-For use cases on how to use the different functionalities, you can consult the `pylis` tutorial.
+For use cases on how to use the different functionalities, you can consult the notebooks under the `tutorials` folder.

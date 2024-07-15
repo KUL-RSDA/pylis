@@ -19,6 +19,12 @@ def bias(x, y):
         warnings.simplefilter("ignore", category = RuntimeWarning)
         return (x-y).mean(dim = "time")
 
+def mad(x, y):
+    with warnings.catch_warnings():
+        # expect RuntimeWarning: Mean of empty slice
+        warnings.simplefilter("ignore", category = RuntimeWarning)
+        return np.abs(x-y).mean(dim = "time")
+
 def rmsd(x, y):
     with warnings.catch_warnings():
         # expect RuntimeWarning: Mean of empty slice

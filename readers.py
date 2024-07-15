@@ -246,18 +246,19 @@ def lis_cube(lis_dir, lis_input_file, var, start, end, subfolder = "SURFACEMODEL
     return dc
 
 
-def innov_cube(lis_dir, lis_input_file, variable = "innov", a = "01", d = "01",
-               start = "01/04/2015", end = "31/12/2020", freq = "1D"):
+def innov_cube(lis_dir, lis_input_file, start, end, var = "innov",
+               subfolder = "EnKF", a = "01", d = "01", freq = None):
     """
     Read data cube of LIS model innovations
     
     :param str lis_dir: parent directory of the LIS output
     :param str lis_input_file: path to LIS input file containing the lat/lon information
-    :param str var: which variable to read in the data cube for
-    :param str a: updated state (in filename)
-    :param str d: domain (in filename)
     :param str start: start of the data cube (format "DD/MM/YYYY")
     :param str end: end of the data cube (format "DD/MM/YYYY")
+    :param str var: which variable to read in the data cube for
+    :param str subfolder: subfolder in which innovations are stored
+    :param str a: updated state (in filename)
+    :param str d: domain (in filename)
     :param str freq: desired temporal resolution after resampling
     """
     
@@ -276,14 +277,14 @@ def innov_cube(lis_dir, lis_input_file, variable = "innov", a = "01", d = "01",
     n_lon = len(lons[0,:])
     
     # count the number of innov files through bash command
-    n_innovfiles = int(subprocess.run(f"cd {lis_dir}/EnKF && find */*_innov.a{a}.d{d}.nc -type f | wc -l",
+    n_innovfiles = int(subprocess.run(f"cd {lis_dir}/{subfolder} && find */*_innov.a{a}.d{d}.nc -type f | wc -l",
                                     capture_output = True, shell = True).stdout)
     
     innov_cube = np.ones((n_innovfiles, n_lat, n_lon))*np.nan
     innov_dates = np.ones(n_innovfiles, dtype = 'datetime64[ns]')
 
     # name of the variable to read out
-    var = f"{variable}_{a}"
+    var = f"{var}_{a}"
     
     # loop over all innovation files
     print("Constructing innovation cube ...")
@@ -291,7 +292,7 @@ def innov_cube(lis_dir, lis_input_file, variable = "innov", a = "01", d = "01",
     i = 0
     
     with tqdm(total = n_innovfiles) as pbar:
-        for subdir, dirs, files in os.walk(f"{lis_dir}/EnKF"):
+        for subdir, dirs, files in os.walk(f"{lis_dir}/{subfolder}"):
             for filename in files:
                 if f"innov.a{a}.d{d}" in filename:
                     year = int(filename[12:16])
@@ -344,20 +345,22 @@ def innov_cube(lis_dir, lis_input_file, variable = "innov", a = "01", d = "01",
     return dc
 
 
-def incr_cube(lis_dir, lis_input_file, variable = "Soil Moisture", layers = [1,2,3,4], a = "01", d = "01",
-              start = "01/04/2015", end = "31/12/2020", freq = "1D"):
+def incr_cube(lis_dir, lis_input_file, start, end,
+              var = "Soil Moisture", layers = [1,2,3,4],
+              subfolder = "EnKF", a = "01", d = "01", freq = None):
     """
     Read data cube of LIS model increments
-    
+
     :param str lis_dir: parent directory of the LIS output
     :param str lis_input_file: path to LIS input file containing the lat/lon information
-    :param str variable: the variable name in the increments file 
-                         (e.g., "Soil Moisture", "LAI", ...)
-    :param list layers: which layers to read in the increments for (choose None for LAI)
-    :param str a: updated state (in filename)
-    :param str d: domain (in filename)
     :param str start: start of the data cube (format "DD/MM/YYYY")
     :param str end: end of the data cube (format "DD/MM/YYYY")
+    :param str var: the variable name in the increments file 
+                    (e.g., "Soil Moisture", "LAI", ...)
+    :param list layers: which layers to read in the increments for (choose None for LAI)
+    :param str subfolder: subfolder in which increments are stored
+    :param str a: updated state (in filename)
+    :param str d: domain (in filename)
     :param str freq: desired temporal resolution after resampling
     """
     
@@ -374,7 +377,7 @@ def incr_cube(lis_dir, lis_input_file, variable = "Soil Moisture", layers = [1,2
     n_layers = 1 if layers is None else len(layers)
     
     # count the number of increment files through bash command
-    n_incrfiles = int(subprocess.run(f"cd {lis_dir}/EnKF && find */*_incr.a{a}.d{d}.nc -type f | wc -l",
+    n_incrfiles = int(subprocess.run(f"cd {lis_dir}/{subfolder} && find */*_incr.a{a}.d{d}.nc -type f | wc -l",
                                      capture_output = True, shell = True).stdout)
     
     incr_cube = np.ones((n_incrfiles, n_layers, n_lat, n_lon))*np.nan
@@ -386,7 +389,7 @@ def incr_cube(lis_dir, lis_input_file, variable = "Soil Moisture", layers = [1,2
     i = 0
     
     with tqdm(total = n_incrfiles) as pbar:
-        for subdir, dirs, files in os.walk(f"{lis_dir}/EnKF"):
+        for subdir, dirs, files in os.walk(f"{lis_dir}/{subfolder}"):
             for filename in files:
                 if f"incr.a{a}.d{d}" in filename:
                     year = int(filename[12:16])
@@ -400,11 +403,11 @@ def incr_cube(lis_dir, lis_input_file, variable = "Soil Moisture", layers = [1,2
 
                         with Dataset(f"{subdir}/{filename}", mode = "r") as f:
                             if layers is None:
-                                var = f"anlys_incr_{variable}_{a}"
+                                var = f"anlys_incr_{var}_{a}"
                                 incr_cube[i, 0, :, :] = f.variables[var][:].data
                             else:
                                 for layer_idx, layer in enumerate(layers):
-                                    var = f"anlys_incr_{variable} Layer {layer}_{a}"
+                                    var = f"anlys_incr_{var} Layer {layer}_{a}"
                                     incr_cube[i, layer_idx, :, :] = f.variables[var][:].data
 
                         i += 1
@@ -450,18 +453,20 @@ def incr_cube(lis_dir, lis_input_file, variable = "Soil Moisture", layers = [1,2
 
 
 def spread_cube(lis_dir, lis_input_file, start, end, variable = "Soil Moisture", 
-                layers = [1,2,3,4], h = 0, a = "01", d = "01", freq = "1D"):
+                layers = [1,2,3,4], subfolder = "EnKF", h = 0, a = "01", d = "01", freq = "1D"):
     """
-    Read data cube of LIS output.
+    Read data cube of LIS ensemble spread.
     
     :param str lis_dir: parent directory of the LIS output
     :param str lis_input_file: path to LIS input file containing the lat/lon information
+    :param str start: start of the data cube (format "DD/MM/YYYY")
+    :param str end: end of the data cube (format "DD/MM/YYYY")
     :param str var: which variable to read in the data cube for
+    :param list layers: which layers to read in the spread for (choose None for LAI)
+    :param str subfolder: subfolder in which the spread is stored
     :param int h: UTC time at which LIS outputs (only if freq = "1D")
     :param str a: updated state (in filename)
     :param str d: domain (in filename)
-    :param str start: start of the data cube (format "DD/MM/YYYY")
-    :param str end: end of the data cube (format "DD/MM/YYYY")
     :param str freq: temporal resolution of the output
     """
     
@@ -486,16 +491,16 @@ def spread_cube(lis_dir, lis_input_file, start, end, variable = "Soil Moisture",
     dc = np.ones((n_time, n_layers, n_lat, n_lon))*np.nan
     
     for i, date in tqdm(enumerate(date_list), total = n_time):
-        fname = "{}/EnKF/{}{:02d}/LIS_DA_EnKF_{}{:02d}{:02d}{:02d}00_spread.a{}.d{}.nc".\
-                  format(lis_dir, date.year, date.month, date.year, date.month, date.day, date.hour+h, a, d)
+        fname = "{}/{}/{}{:02d}/LIS_DA_EnKF_{}{:02d}{:02d}{:02d}00_spread.a{}.d{}.nc".\
+                  format(lis_dir, subfolder, date.year, date.month, date.year, date.month, date.day, date.hour+h, a, d)
         #try:
         with Dataset(fname, mode = 'r') as f:
             if layers is None:
-                var = f"ensspread_{variable}_{a}"
+                var = f"ensspread_{var}_{a}"
                 dc[i, 0, :, :] = f.variables[var][:].data
             else:
                 for layer_idx, layer in enumerate(layers):
-                    var = f"ensspread_{variable} Layer {layer}_{a}"
+                    var = f"ensspread_{var} Layer {layer}_{a}"
                     dc[i, layer_idx, :, :] = f.variables[var][:].data
         #except:
             # if the file is not there: keep the time slice filled with NaN
@@ -525,7 +530,8 @@ def spread_cube(lis_dir, lis_input_file, start, end, variable = "Soil Moisture",
             
     return dc
     
-def obs_cube(lis_dir, lis_input_file, start, end, rescaled = False, a = "01", d = "01", freq = "1D"):
+def obs_cube(lis_dir, lis_input_file, start, end, rescaled = False, 
+             subfolder = "DAOBS", a = "01", d = "01", freq = None):
     """
     Read data cube of binary observations.
     
@@ -534,6 +540,9 @@ def obs_cube(lis_dir, lis_input_file, start, end, rescaled = False, a = "01", d 
     :param str start: start of the data cube (format "DD/MM/YYYY")
     :param str end: end of the data cube (format "DD/MM/YYYY")
     :param bool rescaled: whether to read out the rescaled (True) or raw (False) observations
+    :param str subfolder: subfolder in which the spread is stored
+    :param str a: updated state (in filename)
+    :param str d: domain (in filename)
     :param str freq: desired temporal resolution after resampling
     """
     
@@ -549,7 +558,7 @@ def obs_cube(lis_dir, lis_input_file, start, end, rescaled = False, a = "01", d 
 
     # count the number of binary observation files through bash command
     print("Counting the number of observations ...")
-    n_obsfiles = int(subprocess.run(f"cd {lis_dir}/DAOBS && find */LISDAOBS_*a{a}.d{d}.1gs4r -type f | wc -l",
+    n_obsfiles = int(subprocess.run(f"cd {lis_dir}/{subfolder} && find */LISDAOBS_*a{a}.d{d}.1gs4r -type f | wc -l",
                                     capture_output = True, shell = True).stdout)
 
     obs_cube = np.ones((n_obsfiles, n_lat, n_lon))*np.nan
@@ -561,7 +570,7 @@ def obs_cube(lis_dir, lis_input_file, start, end, rescaled = False, a = "01", d 
     i = 0
 
     with tqdm(total = n_obsfiles) as pbar:
-        for subdir, dirs, files in os.walk(f"{lis_dir}/DAOBS"):
+        for subdir, dirs, files in os.walk(f"{lis_dir}/{subfolder}"):
             for filename in files:
                 file_a = filename[23:25]
                 file_d = filename[27:29]
