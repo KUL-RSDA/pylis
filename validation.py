@@ -13,35 +13,35 @@ from glob import glob
 from pylis.help import argmin_nd
 
 # functions to compute metrics
-def bias(x, y):
+def bias(x, y, dim = "time"):
     with warnings.catch_warnings():
         # expect RuntimeWarning: Mean of empty slice
         warnings.simplefilter("ignore", category = RuntimeWarning)
-        return (x-y).mean(dim = "time")
+        return (x-y).mean(dim = dim)
 
-def mad(x, y):
+def mad(x, y, dim = "time"):
     with warnings.catch_warnings():
         # expect RuntimeWarning: Mean of empty slice
         warnings.simplefilter("ignore", category = RuntimeWarning)
-        return np.abs(x-y).mean(dim = "time")
+        return np.abs(x-y).mean(dim = dim)
 
-def rmsd(x, y):
+def rmsd(x, y, dim = "time"):
     with warnings.catch_warnings():
         # expect RuntimeWarning: Mean of empty slice
         warnings.simplefilter("ignore", category = RuntimeWarning)
-        return np.sqrt(((x-y)**2).mean(dim = "time"))
+        return np.sqrt(((x-y)**2).mean(dim = dim))
 
-def ubrmsd(x, y):
+def ubrmsd(x, y, dim = "time"):
     with warnings.catch_warnings():
         # expect RuntimeWarning: Mean of empty slice
         warnings.simplefilter("ignore", category = RuntimeWarning)
-        return np.sqrt(rmsd(x,y)**2 - bias(x,y)**2)
+        return np.sqrt(rmsd(x,y,dim)**2 - bias(x,y,dim)**2)
 
-def r(x, y):
+def r(x, y, dim = "time"):
     with warnings.catch_warnings():
         # expect RuntimeWarning: Mean of empty slice
         warnings.simplefilter("ignore", category = RuntimeWarning)
-        return xr.corr(x, y, dim = "time")
+        return xr.corr(x, y, dim = dim)
 
 def r_anom(x, y):
     with warnings.catch_warnings():
