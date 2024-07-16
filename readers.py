@@ -1,11 +1,12 @@
 # libraries
 import pandas as pd
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import numpy as np
 import xarray as xr
 from datetime import datetime
 from netCDF4 import Dataset
 import subprocess
+import warnings
 import os
 
 def landflag(lis_input_file):
@@ -143,7 +144,7 @@ def topo_complexity(lis_input_file, topo_complexity_file = "/dodrio/scratch/proj
 
 
 def lis_cube(lis_dir, lis_input_file, var, start, end, subfolder = "SURFACEMODEL",
-             h = 0, d = "01", freq = "1D"):
+             h = 0, d = "01", freq = "1D", date_shift = False):
     """
     Read data cube of LIS model output
     
@@ -156,7 +157,14 @@ def lis_cube(lis_dir, lis_input_file, var, start, end, subfolder = "SURFACEMODEL
     :param int h: UTC time at which LIS outputs (e.g., daily outputs at 12 UTC: h = 12)
     :param str d: domain (in filename)
     :param str freq: temporal resolution of the output
+    :param bool date_shift: use this option to shift the LIS output date with "freq". Recommended option for "_tavg" output.
     """
+
+    # warnings related to the date_shift option
+    if ("_tavg" in var) and (not date_shift):
+        print("It is recommended to set date_shift=True for averaged outputs.")
+    elif ("_inst" in var) and (date_shift):
+        print("It is recommended to set date_shift=False for instantaneous outputs.")
     
     # construct a list of all dates
     date_list = pd.date_range(start = datetime(int(start[6:10]), int(start[3:5]), int(start[0:2])), 
@@ -195,7 +203,7 @@ def lis_cube(lis_dir, lis_input_file, var, start, end, subfolder = "SURFACEMODEL
     else:
         dc = np.ones((n_time, n_layers, n_lat, n_lon))*np.nan
     
-    for i, date in tqdm(enumerate(date_list), total = n_time):
+    for i, date in tqdm(enumerate(date_list + pd.Timedelta(freq) if date_shift else date_list), total = n_time):
 
         fname = "{}/{}/{}{:02d}/LIS_HIST_{}{:02d}{:02d}{:02d}00.d{}.nc".\
                   format(lis_dir, subfolder, date.year, date.month, date.year, date.month, date.day, date.hour+h, d)
