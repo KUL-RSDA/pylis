@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 from tqdm import tqdm
 import statsmodels.api as sm
+import numpy as np
 
 def reload(library):
     importlib.reload(library)
@@ -104,3 +105,13 @@ def get_grid_latlon(dc, lat, lon):
     """
 
     return argmax_nd((dc.lat == lat) * (dc.lon == lon))
+
+
+def corr(x, y):
+    """
+    Compute the Pearson correlation for two numpy arrays x and y that may contain missing values
+    """
+  
+    mask = np.isfinite(x) * np.isfinite(y)  
+    
+    return np.corrcoef(x[mask], y[mask])[0, 1] if np.sum(mask) > 0 else np.nan
