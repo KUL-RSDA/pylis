@@ -91,7 +91,7 @@ def irrigfrac(lis_input_file):
     """
     Return irrigated fraction
     
-    :param str lis_input_file: Path to LIS input file containing LANDMASK variable.
+    :param str lis_input_file: Path to LIS input file containing IRRIGFRAC variable.
     """
 
     with Dataset(lis_input_file, mode = "r") as f:
