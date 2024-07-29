@@ -86,6 +86,31 @@ def landcover(lis_input_file, majority = True, classification_system = "IGBP"):
     
     return lc
 
+
+def irrigfrac(lis_input_file):
+    """
+    Return irrigated fraction
+    
+    :param str lis_input_file: Path to LIS input file containing IRRIGFRAC variable.
+    """
+
+    with Dataset(lis_input_file, mode = "r") as f:
+        irrigfrac = f.variables["IRRIGFRAC"][:,:].data
+        lats = f.variables["lat"][:,:].data
+        lons = f.variables["lon"][:,:].data
+
+    irrigfrac = xr.DataArray(
+        data = np.array(irrigfrac, dtype = '>f4'),
+        dims = ["x", "y"],
+        coords = dict(
+            lon = (["x", "y"], lons),
+            lat = (["x", "y"], lats),
+        ),
+    )
+
+    return irrigfrac
+
+
 def topo_complexity(lis_input_file, topo_complexity_file = "/dodrio/scratch/projects/2022_200/project_input/rsda/l_data/obs_satellite/ESA_CCI_SM/ancillary/ESACCI-SOILMOISTURE-TOPOGRAPHIC_COMPLEXITY_V01.1.nc"):
     """
     Read in topographic complexity.
