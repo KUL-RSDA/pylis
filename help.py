@@ -107,11 +107,30 @@ def get_grid_latlon(dc, lat, lon):
     return argmax_nd((dc.lat == lat) * (dc.lon == lon))
 
 
+def latlon_sel(dc, lat, lon, return_indices = False):
+    """
+    Find the closest grid cell of xr.DataArray dc for a given lat and lon in case of a non-orthogonal grid (when the .sel(lat = ..., lon = ...) functionality won't work)
+    """
+
+    flat_lats = dc.lat.data.flatten()
+    flat_lons = dc.lon.data.flatten()
+
+    distances = np.sqrt((flat_lats - lat)**2 + (flat_lons - lon)**2)
+    min_index = distances.argmin()
+
+    x_index, y_index = np.unravel_index(min_index, dc.lat.data.shape)
+
+    if return_indices:
+        return int(x_index), int(y_index)
+
+    return dc.sel(x = x_index, y = y_index)
+
+
 def corr(x, y):
     """
     Compute the Pearson correlation for two numpy arrays x and y that may contain missing values
     """
   
-    mask = np.isfinite(x) * np.isfinite(y)  
+    mask = np.isfinite(x) * np.isfinite(y)
     
     return np.corrcoef(x[mask], y[mask])[0, 1] if np.sum(mask) > 0 else np.nan

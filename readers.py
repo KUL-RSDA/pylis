@@ -279,6 +279,112 @@ def lis_cube(lis_dir, lis_input_file, var, start, end, subfolder = "SURFACEMODEL
     return dc
 
 
+def wrf_cube(wrf_dir, var, start, end, d = "01", freq = "1D"):
+    """
+    Read data cube of NU-WRF model output
+    
+    :param str wrf_dir: parent directory of the LIS output
+    :param str var: which variable to read in the data cube for (e.g., "V10", "T2", "LAI", "SMOIS")
+    :param str start: start of the data cube (format "DD/MM/YYYY")
+    :param str end: end of the data cube (format "DD/MM/YYYY")
+    :param str d: domain (in filename)
+    :param str freq: temporal resolution of the output
+    """
+
+    # construct a list of all dates
+    date_list = pd.date_range(
+        start = datetime(int(start[6:10]), int(start[3:5]), int(start[0:2])), 
+        end = datetime(int(end[6:10]), int(end[3:5]), int(end[0:2])), 
+        freq = freq
+    )
+    n_time = len(date_list)
+
+    # use the first file to obtain latitude and longitude information, and the number of layers
+    first_date = date_list[0]
+    first_file = f"{wrf_dir}/wrfout_d{d}_{first_date.year}-{first_date.month:02}-{first_date.day:02}_{first_date.hour:02}:00:00"
+
+    with Dataset(first_file, mode = "r") as f:
+        # first dimension is dummy time
+        lats = f.variables["XLAT"][0,:,:].data
+        lons = f.variables["XLONG"][0,:,:].data
+        landmask = f.variables["LANDMASK"][0,:,:].data
+        output = f.variables[var][0,:].data
+
+    # number of grid cells in each direction
+    n_lat = len(lats[:,0])
+    n_lon = len(lons[0,:])
+
+    # number of layers
+    if len(output.shape) == 2:
+        # e.g., LAI
+        n_layers = 1 
+    else:
+        # e.g., soil moisture
+        n_layers = output.shape[0]
+
+    del first_date, output
+
+    # initialize data cube object
+    if n_layers == 1:
+        dc = np.ones((n_time, n_lat, n_lon))*np.nan
+    else:
+        dc = np.ones((n_time, n_layers, n_lat, n_lon))*np.nan
+
+    # read in all the files
+    for i, date in tqdm(enumerate(date_list), total = n_time):
+
+        fname = f"{wrf_dir}/wrfout_d{d}_{date.year}-{date.month:02}-{date.day:02}_{date.hour:02}:00:00"
+    
+        with Dataset(fname, mode = 'r') as f:
+            dc[i] = f.variables[var][0,:].data
+
+    dc[dc == -9999] = np.nan
+
+    # # mask open water for land variables
+    # if var in ["SMOIS", "SH2O", "LAI", "VEGFRA"]:
+    #     dc[landmask == 0] = np.nan !!!!! has to be done for each time and layer slice
+
+    # mask open water for land variables
+    if var in ["SMOIS", "SH2O"]:
+        dc[dc >= 1] = np.nan
+    elif var in ["LAI", "VEGFRA"]:
+        dc[dc == 0] = np.nan
+
+    # store as xarray
+    if n_layers == 1:
+        dc = xr.DataArray(
+            data = dc,
+            dims = ["time", "x", "y"],
+            coords = dict(
+                lon = (["x", "y"], lons),
+                lat = (["x", "y"], lats),
+                time = date_list,
+            ),
+            attrs = dict(
+                description = "NU-WRF model output",
+                variale = var
+            ),
+        )
+        
+    else:
+        dc = xr.DataArray(
+            data = dc,
+            dims = ["time", "layer", "x", "y"],
+            coords = dict(
+                lon = (["x", "y"], lons),
+                lat = (["x", "y"], lats),
+                layer = [i+1 for i in range(n_layers)],
+                time = date_list,
+            ),
+            attrs = dict(
+                description = "NU-WRF model output",
+                variable = var
+            ),
+        )
+
+    return dc
+
+
 def innov_cube(lis_dir, lis_input_file, start, end, var = "innov",
                subfolder = "EnKF", a = "01", d = "01", freq = None):
     """

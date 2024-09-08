@@ -355,8 +355,8 @@ def mask_cube(swe_cube, temp_cube, obs_cube = None):
     return mask
 
 def compute_metrics(data_cube, df_in_situ, metrics_list = ["bias", "RMSD", "ubRMSD", "R", "R_anom"],
-                    threshold_days = 200, threshold_years = 3, mask = None, agg_per_gridcell = True,
-                    to_sfsm_rzsm = False, months = (1,12)):
+                    threshold_days = 0, threshold_years = 0, mask = None, agg_per_gridcell = True,
+                    to_sfsm_rzsm = False, months = range(1,13)):
     """
     Compute evaluation metrics between a data cube and ISMN data.
     
@@ -368,12 +368,9 @@ def compute_metrics(data_cube, df_in_situ, metrics_list = ["bias", "RMSD", "ubRM
     :param xarray mask: array of the same dimension as data_cube, as obtained from mask_cube(), indicating which data not to use for validation
     :param bool agg_per_gridcell: whether to aggregate in situ sites located in the same grid cell (for reasons of representativeness)
     :param to_sfsm_rzsm: return sfsm and rzsm evaluation (if True), or evaluation per layer (if False)
-    :param tuple months: first and last month of the validation (whole year by default, take (5,9) for May-September, for example)
+    :param list months: list of months to use in the validation (defaults to the whole year)
     """
 
-    def sel_month(m):
-        return (m >= months[0]) & (m <= months[1])
-       
     # check if we have sufficient observations
     n_sensors = len(df_in_situ)
     for i in range(n_sensors):
@@ -424,7 +421,7 @@ def compute_metrics(data_cube, df_in_situ, metrics_list = ["bias", "RMSD", "ubRM
         sm_in_situ = df_in_situ["timeseries"][i]
 
         # use only some months for validation
-        sm_in_situ = sm_in_situ.sel(time = sel_month(sm_in_situ['time.month']))
+        sm_in_situ = sm_in_situ.sel(time = sm_in_situ['time.month'].isin(months))
 
         for metric in metrics_list:
             func = metric_dict[metric]
