@@ -12,7 +12,12 @@ from matplotlib.offsetbox import AnchoredText
 def add_box(text, ax, fontsize = 8, loc = 2):
     """
     Add box to a panel of a figure (e.g., containing "(a)", "(b)", ... in papers).
-    Default location top left.
+    Default location upper left.
+
+    :param string text: The text to add to the box (e.g., "(a)").
+    :param matplotlib.axes ax: Axis to which to add the box.
+    :param float fontsize: Fontsize of the text in the box.
+    :param int/string loc: Location of the box on the axis.
     """
     box = AnchoredText(text, prop = dict(size = fontsize), frameon = True, loc = loc)
     box.patch.set_boxstyle("round, pad = 0., rounding_size = 0.2")
@@ -22,6 +27,8 @@ def add_box(text, ax, fontsize = 8, loc = 2):
 def forceSquare(ax):
     """
     Force an axis to be square
+
+    :param matplotlib.axes ax: Axis that should be square.
     """
     try:
         imag = ax.get_images()
@@ -29,47 +36,51 @@ def forceSquare(ax):
         ax.set_aspect(abs((extent[1]-extent[0])/(extent[3]-extent[2])))
     except IndexError:
         # won't work for an empty panel
-        print("Couldn't force-square an empty axis")
+        print("Can't force-square an empty axis")
         
 
-def map_imshow(map_2d, projection = ccrs.Robinson(25),
-               xmin = -9.375, xmax = 36.875, ymin = 29.875, ymax = 71.875,
+def map_imshow(map_2d, projection = ccrs.PlateCarree(),
+               xmin = None, xmax = None, ymin = None, ymax = None,
                cmap = "Spectral_r", vmin = None, vmax = None, norm = None,
                cbar = {"show": True}, borders = False, water_hatch = '////////',
                line_width = 0.8, line_color = "black", lake_color = "none", fill_color = "white",
                grid_width = 0.3, grid_delta = 10, grid_labels = [], grid_label_size = 8,
-               resol = "10m", return_object = False, title = None, fontsize = 10,
+               resol = "50m", return_object = False, title = None, fontsize = 10,
                figsize = (3,3), dpi = 150, ax = None, filename = None):
     
     """
-    Plot a map of a 2d xarray
+    Plot a map of a 2D xarray.DataArray with lat and lon dimensions.
     
-    :param xarray map_2d: Map to plot (e.g., soil moisture, LAI, ...) with lat-lon information.
-    :param ccrs.proj projection: Projection of the map. Defaults to a good value for Europe.
-                                 Use ccrs.Orthographic(-10, 45) to plot a globe.
-    :param int xmin/xmax/ymin/ymax: Corners of the domain. Defaults to Europe.
+    :param xarray map_2d: Map to plot with lat-lon information.
+    :param ccrs.proj projection: Projection of the map. Default works well for a regular latitude-longitude grid.
+                                 For a map of Europe including Scandinavia, ccrs.Robinson(25) works well 
+                                           (curved meridians make the map less stretched for higher latitudes).
+                                 For a globe, try ccrs.Orthographic(-10, 45) for example.
+                                 When using a Lambert projection as output (often used when running NU-WRF), use 
+                                           ccrs.LambertConformal(central_longitude = -98.3, central_latitude = 38.5) (values are for CONUS).
+    :param int xmin/xmax/ymin/ymax: Corners of the domain. If not set, this is based on map_2d.
     :param string cmap: Colormap for the plot.
-    :param float vmin/vmax: Range for the colormap.
-    :param matplotlib.color.norm norm: Norm for the colormap.
+    :param float vmin/vmax: Range for the colormap. If not set, based on the min and max values of map_2d.
+    :param matplotlib.color.norm norm: Norm for the colormap (e.g., to use a logarithmic colorbar).
     :param dict cbar: Settings for the colorbar. Must contain key "show". Optional keys are "orientation", 
                       "extend", "label", "title", "ticks", "tick_labels", "minorticks".
-    :param bool borders: Whether to plot borders.
+    :param bool borders: Whether to plot country and state borders.
     :param string water_hatch: Hatch pattern for the water (None for no hatch pattern).
-    :param float line_width: Linewidth used for e.g. coastlines, edges of lakes, ...
+    :param float line_width: Linewidth used for e.g. coastlines, edges of lakes, borders ...
     :param string line_color: Color of e.g. coastlines.
     :param string fill_color: Color of water and missing values.
     :param grid_width: Linewidth of the grid. Choose 0 for no grid.
     :param float grid_delta: Distance between grid lines (in degrees).
     :param bool grid_labels: List with positions (e.g., ["bottom", "left"]) for lat/lon labels (empty list for no labels).
     :param float grid_label_size: Fontsize of the grid labels, if any.
-    :param str resol: Resolution of the coastlines. One of '10m', '50m', or '110m'.
+    :param str resol: Resolution of the coastlines. One of '10m', '50m', or '110m'. Has big impact on rendering speed!
     :param return_object: Whether to return the plotted object (can be useful when plotting one
                           colorbar for several panels, for example).
     :param string title: Title of the axis.
     :param float fontsize: Size of the font for the title.
     :param tuple figsize: Dimensions of the figure (if ax is None).
     :param float dpi: Dpi of the figure (if ax is None).
-    :param matplotlib.ax ax: Axis on which to plot the map. Choose None to create new axis.
+    :param matplotlib.axes ax: Axis on which to plot the map. Choose None to create new axis.
     :param string filename: Filename of the figure. Choose None if it shouldn't be saved.
     """
     
@@ -104,7 +115,7 @@ def map_imshow(map_2d, projection = ccrs.Robinson(25),
     
     # draw borders
     if borders:
-        ax.add_feature(cf.BORDERS, linewidth = line_width)#, linestyle = "dashdot")
+        ax.add_feature(cf.BORDERS, linewidth = line_width)
         ax.add_feature(cf.STATES, linewidth = line_width/2)
 
     
@@ -162,41 +173,47 @@ def map_imshow(map_2d, projection = ccrs.Robinson(25),
     # return the plotted object
     if return_object:
         return cs
-        
+    
         
 def map_scatter(df, var, drop_nan = True, s = 12, edgecolor = "black", edgewidth = 0.3,
-                projection = ccrs.Robinson(25), 
-                xmin = -9.375, xmax = 36.875, ymin = 29.875, ymax = 71.875,
+                projection = ccrs.PlateCarree(), 
+                xmin = None, xmax = None, ymin = None, ymax = None,
                 cmap = plt.get_cmap("seismic_r", 15), vmin = None, vmax = None, norm = None,
                 cbar = {"show": True}, borders = False,
                 line_width = 0.0, line_color = "gainsboro", fill_color = "gainsboro",
                 grid_width = 0.3, grid_delta = 10, resol = "110m",
                 return_object = False, return_fig = False, title = None, fontsize = 10,
                 figsize = (3,3), dpi = 150, ax = None, filename = None):
+
+    
     
     """
     Plot scatter points on a map.
     
-    :param pd.dataframe df: DataFrame with lat, lon, var columns.
+    :param pd.dataframe df: DataFrame with lat, lon, <var> columns.
     :param string var: Variable to plot (column name of df).
-    :param bool drop_nan: Don't plot missing values.
+    :param bool drop_nan: Don't plot missing values (otherwise non-colored scatter point).
     :param float s: Size of the scatter points.
     :param string edgecolor: Edgecolor of the scatter points.
     :param float edgewidth: Width of the contour around the scatter points.
-    :param ccrs.proj projection: Projection of the map. Defaults to a good value for Europe.
-                                 Use ccrs.Orthographic(-10, 45) to plot a globe.
-    :param int xmin/xmax/ymin/ymax: Corners of the domain. Defaults to Europe.
+    :param ccrs.proj projection: Projection of the map. Default works well for a regular latitude-longitude grid.
+                                 For a map of Europe including Scandinavia, ccrs.Robinson(25) works well 
+                                           (curved meridians make the map less stretched for higher latitudes).
+                                 For a globe, try ccrs.Orthographic(-10, 45) for example.
+                                 When using a Lambert projection as output (often used when running NU-WRF), use 
+                                           ccrs.LambertConformal(central_longitude = -98.3, central_latitude = 38.5) (values are for CONUS).
+    :param int xmin/xmax/ymin/ymax: Corners of the domain. If not set, this is based on map_2d.
     :param string cmap: Colormap for the plot.
-    :param float vmin/vmax: Range for the colormap.
+    :param float vmin/vmax: Range for the colormap. If not set, based on the min and max values of df.var.
     :param matplotlib.color.norm norm: Norm for the colormap.
     :param dict cbar: Settings for the colorbar. Must contain key "show". Optional keys are "orientation", 
                       "extend", "label", "title", "ticks", "tick_labels", "minorticks".
-    :param float line_width: Linewidth used for e.g. coastlines, edges of lakes, ...
+    :param float line_width: Linewidth used for e.g. coastlines, edges of lakes, borders, ...
     :param string line_color: Color of e.g. coastlines.
     :param string fill_color: Color of water.
     :param grid_width: Linewidth of the grid. Choose 0 for no grid.
     :param float grid_delta: Distance between grid lines (in degrees).
-    :param str resol: Resolution of the coastlines. One of '10m', '50m', or '110m'.
+    :param str resol: Resolution of the coastlines. One of '10m', '50m', or '110m'. Has big impact on rendering speed!
     :param return_object: Whether to return the plotted object (can be useful when manually plotting one
                           colorbar for several panels, for example).
     :param string title: Title of the axis.
@@ -219,8 +236,8 @@ def map_scatter(df, var, drop_nan = True, s = 12, edgecolor = "black", edgewidth
                     s = s, edgecolor = edgecolor, linewidth = edgewidth, 
                     cmap = cmap, norm = norm, vmin = vmin, vmax = vmax)
     
-    # add coastlines
-    ax.coastlines(resolution = resol, linewidth = line_width, rasterized = True)
+    # # add coastlines
+    # ax.coastlines(resolution = resol, linewidth = line_width, edgecolor = line_color, rasterized = True)
     
     # add lakes and oceans
     lakes = cartopy.feature.NaturalEarthFeature('physical', 'lakes', scale = resol, 
@@ -231,7 +248,8 @@ def map_scatter(df, var, drop_nan = True, s = 12, edgecolor = "black", edgewidth
     
     # draw borders
     if borders:
-        ax.add_feature(cf.BORDERS, linewidth = grid_width, linestyle = "dashdot")
+        ax.add_feature(cf.BORDERS, linewidth = line_width, edgecolor = line_color)
+        ax.add_feature(cf.STATES, linewidth = line_width/2, linestyle = "dashdot", edgecolor = line_color)
     
     # add grid
     gl = ax.gridlines(linewidth = grid_width, color = 'black', alpha = 0.25)
