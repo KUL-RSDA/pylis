@@ -112,6 +112,9 @@ def latlon_sel(dc, lat, lon, return_indices = False):
     Find the closest grid cell of xr.DataArray dc for a given lat and lon in case of a non-orthogonal grid (when the .sel(lat = ..., lon = ...) functionality won't work)
     """
 
+    # TO DO: see Michel's comment under PR #7
+    # Using GDAL's osr and ogr modules, one can create geographic coordinates (points), assign them to a specific coordinate reference system (CRS), and compute the distance.
+
     flat_lats = dc.lat.data.flatten()
     flat_lons = dc.lon.data.flatten()
 
