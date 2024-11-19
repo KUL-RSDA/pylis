@@ -86,6 +86,75 @@ def landcover(lis_input_file, majority = True, classification_system = "IGBP"):
     
     return lc
 
+def soiltexture(lis_input_file, majority = True, classification_system = "STATSGO"):
+    """
+    Return map with soil texture data from the LIS input file
+    
+    :param str lis_input_file: Path to LIS input file containing TEXTURE variable.
+    :param bool majority: If True, output majority class. If false, output fractions.
+    """
+    
+    if classification_system == "STATSGO":
+        soiltypes = [
+                    'SAND',
+                    'LOAMY SAND',
+                    'SANDY LOAM',
+                    'SILT LOAM',
+                    'SILT',
+                    'LOAM',
+                    'SANDY CLAY LOAM',
+                    'SILTY CLAY LOAM',
+                    'CLAY LOAM',
+                    'SANDY CLAY',
+                    'SILTY CLAY',
+                    'CLAY',
+                    'ORGANIC MATERIAL',
+                    'WATER',
+                    'BEDROCK',
+                    'OTHER(land-ice)',
+                    'PLAYA',
+                    'LAVA',
+                    'WHITE SAND'
+                   ]
+    else:
+        raise Exception("This classification system is not yet implemented.")
+
+    with Dataset(lis_input_file, mode = "r") as f:
+        tc = f.variables["TEXTURE"][:,:,:].data
+        lats = f.variables["lat"][:,:].data
+        lons = f.variables["lon"][:,:].data
+    
+    n_types, n_lat, n_lon = tc.shape
+    
+    if majority:
+        tc = np.argmax(tc, axis = 0)
+        tc_string = np.empty(tc.shape, dtype = "<U100")
+        for i in range(n_lat):
+            for j in range(n_lon):
+                tc_string[i,j] = soiltypes[tc[i,j]]
+                
+        tc = xr.DataArray(
+            data = tc_string, 
+            dims = ["x", "y"],
+            coords = dict(
+                lon = (["x", "y"], lons),
+                lat = (["x", "y"], lats),
+            ),
+        )
+    else:
+        tc = xr.DataArray(
+            data = tc, 
+            dims = ["soiltype", "x", "y"],
+            coords = dict(
+                soiltype = soiltypes,
+                lon = (["x", "y"], lons),
+                lat = (["x", "y"], lats),
+            ),
+        )
+    
+    return tc
+
+
 
 def irrigfrac(lis_input_file):
     """
