@@ -30,3 +30,29 @@ vis.map_imshow(root_zone(dc_sm).mean(dim = "time"))
 ```
 
 For use cases on how to use the different functionalities, you can consult the notebooks under the `tutorials` folder.
+
+## Requirements
+
+Here an examply yml file for a conda environment that allows to work with pylis.
+
+name: pylis-main
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - pandas
+  - numpy
+  - xarray
+  - netCDF4
+  - tqdm
+  - matplotlib
+  - cartopy
+  - statsmodels
+  - ipykernel
+  - ipywidgets
+  - pip
+  - pip:
+      - ismn
+      - pytesmo
+ 
