@@ -660,7 +660,7 @@ def incr_cube(lis_dir, lis_input_file, start, end,
     return dc
 
 
-def spread_cube(lis_dir, lis_input_file, start, end, variable = "Soil Moisture", 
+def spread_cube(lis_dir, lis_input_file, start, end, var = "Soil Moisture", 
                 layers = [1,2,3,4], subfolder = "EnKF", h = 0, a = "01", d = "01", freq = "1D"):
     """
     Read data cube of LIS ensemble spread.
