@@ -611,12 +611,12 @@ def incr_cube(lis_dir, lis_input_file, start, end,
 
                         with Dataset(f"{subdir}/{filename}", mode = "r") as f:
                             if layers is None:
-                                var = f"anlys_incr_{var}_{a}"
-                                incr_cube[i, 0, :, :] = f.variables[var][:].data
+                                var_full = f"anlys_incr_{var}_{a}"
+                                incr_cube[i, 0, :, :] = f.variables[var_full][:].data
                             else:
                                 for layer_idx, layer in enumerate(layers):
-                                    var = f"anlys_incr_{var} Layer {layer}_{a}"
-                                    incr_cube[i, layer_idx, :, :] = f.variables[var][:].data
+                                    var_full = f"anlys_incr_{var} Layer {layer}_{a}"
+                                    incr_cube[i, layer_idx, :, :] = f.variables[var_full][:].data
 
                         i += 1
                         pbar.update(1)
@@ -660,7 +660,7 @@ def incr_cube(lis_dir, lis_input_file, start, end,
     return dc
 
 
-def spread_cube(lis_dir, lis_input_file, start, end, variable = "Soil Moisture", 
+def spread_cube(lis_dir, lis_input_file, start, end, var = "Soil Moisture", 
                 layers = [1,2,3,4], subfolder = "EnKF", h = 0, a = "01", d = "01", freq = "1D"):
     """
     Read data cube of LIS ensemble spread.
@@ -704,12 +704,12 @@ def spread_cube(lis_dir, lis_input_file, start, end, variable = "Soil Moisture",
         #try:
         with Dataset(fname, mode = 'r') as f:
             if layers is None:
-                var = f"ensspread_{var}_{a}"
-                dc[i, 0, :, :] = f.variables[var][:].data
+                var_full = f"ensspread_{var}_{a}"
+                dc[i, 0, :, :] = f.variables[var_full][:].data
             else:
                 for layer_idx, layer in enumerate(layers):
-                    var = f"ensspread_{var} Layer {layer}_{a}"
-                    dc[i, layer_idx, :, :] = f.variables[var][:].data
+                    var_full = f"ensspread_{var} Layer {layer}_{a}"
+                    dc[i, layer_idx, :, :] = f.variables[var_full][:].data
         #except:
             # if the file is not there: keep the time slice filled with NaN
         #    print(f"Warning: could not find file {fname}. Filling time slice with NaN.")
@@ -728,7 +728,7 @@ def spread_cube(lis_dir, lis_input_file, start, end, variable = "Soil Moisture",
         ),
         attrs = dict(
             description = "LIS model spread",
-            variable = var,
+            variable = var_full,
         ),
     )
     
